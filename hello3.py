@@ -9,6 +9,7 @@ from pyaspeller import YandexSpeller
 import string
 
 
+
 def load(filename):    
     with open(filename) as data_file:
         data = json.load(data_file)    
@@ -67,23 +68,22 @@ jawaban_siswa = []
 label = [1, 1, 1, 1, 1]  
 jawaban_siswa.append(output)
 
-print("\n"+output)
+# print("\n"+output)
 
 for i in range(4):
     hasilan = getSinonim(output)
     jawaban_siswa.append(hasilan)
     
-    print("\n" + hasilan)
+    # print("\n" + hasilan)
 
 
-
-# Ekstraksi fitur menggunakan TF-IDF
+# Ekstraksi fitur menggunakan vektor TF-IDF
 vectorizer = TfidfVectorizer()
 X = vectorizer.fit_transform(jawaban_siswa)
 
-# Membangun model K-NN
-k = 3
-model = KNeighborsClassifier(n_neighbors=k)
+# Membangun model K-NN dengan metrik jarak Euclidean
+k = 5
+model = KNeighborsClassifier(n_neighbors=k, metric='euclidean')
 model.fit(X, label)
 
 # Input jawaban dari pengguna
@@ -92,14 +92,15 @@ jawaban_pengguna = input("Masukkan jawaban Anda: ")
 # Ekstraksi fitur dari jawaban pengguna
 X_pengguna = vectorizer.transform([jawaban_pengguna])
 
-#  Hitung kemiripan kosinus antara jawaban pengguna dan jawaban pelatihan
-kemiripan = cosine_similarity(X, X_pengguna)
+# Hitung kemiripan menggunakan metrik jarak Euclidean
+distances, indices = model.kneighbors(X_pengguna)
 
-# Tampilkan nilai kemiripan sebagai persentase
-max_similarity = np.max(kemiripan)
-percentage_similarity = max_similarity * 100
+# Tampilkan nilai kemiripan sebagai persentase (dalam hal ini, semakin kecil jaraknya, semakin mirip)
+min_distance = np.min(distances)
+percentage_similarity = 100 / (1 + min_distance)  # Normalisasi nilai jarak
 
-if max_similarity >= 0.5:  # Ubah threshold sesuai kebutuhan
+if percentage_similarity >= 50:  # Ubah threshold sesuai kebutuhan
     print(f"Jawaban Anda mirip dengan salah satu jawaban dalam data pelatihan ({percentage_similarity:.2f}% kemiripan).")
 else:
     print("Jawaban Anda tidak mirip dengan jawaban dalam data pelatihan.")
+    

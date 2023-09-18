@@ -1,26 +1,26 @@
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics.pairwise import cosine_similarity
 import json
 import random
+import string
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from pyaspeller import YandexSpeller
-import string
 
-
-
-def load(filename):    
+def load(filename):
     with open(filename) as data_file:
-        data = json.load(data_file)    
-
+        data = json.load(data_file)
     return data
 
 # load dictionary
 mydict = load('dict.json')
 
+# Membuat objek StemmerFactory
+factory = StemmerFactory()
+stemmer = factory.create_stemmer()
+
 def getSinonim(kalimat):
-    kalimat_split = kalimat.split()  
+    kalimat_split = kalimat.split()
     sinonim_kalimat = []
 
     for kata in kalimat_split:
@@ -37,7 +37,6 @@ def getSinonim(kalimat):
 
     return ' '.join(sinonim_kalimat)  # Menggabungkan kembali kata-kata menjadi kalimat
 
-
 def typo2(text):
     speller = YandexSpeller(lang='en')
     result = speller.spell(text)
@@ -51,31 +50,20 @@ def typo2(text):
 
     return corrected_text
 
-factory = StemmerFactory()
-stemmer = factory.create_stemmer()
+def preprocess_input(text):
+    lower = text.lower()
+    trimmer = lower.translate(str.maketrans("", "", string.punctuation))
+    stem = stemmer.stem(trimmer)
+    output = typo2(stem)
+    return output
 
 # Contoh penggunaan
-
-data = input("masukan katanya untuk jawaban soal \n")
-
-lower = data.lower()
-trimmer = lower.translate(str.maketrans("", "", string.punctuation))
-stem = stemmer.stem(trimmer)
-output = typo2(stem)
+data = input("Masukkan kata untuk jawaban soal: ")
+output = preprocess_input(data)
 
 # Contoh data pelatihan (jawaban dan label)
-jawaban_siswa = []
-label = [1, 1, 1, 1, 1]  
-jawaban_siswa.append(output)
-
-# print("\n"+output)
-
-for i in range(4):
-    hasilan = getSinonim(output)
-    jawaban_siswa.append(hasilan)
-    
-    # print("\n" + hasilan)
-
+jawaban_siswa = [output] + [getSinonim(output) for _ in range(4)]
+label = [1, 1, 1, 1, 1]
 
 # Ekstraksi fitur menggunakan vektor TF-IDF
 vectorizer = TfidfVectorizer()
@@ -88,6 +76,8 @@ model.fit(X, label)
 
 # Input jawaban dari pengguna
 jawaban_pengguna = input("Masukkan jawaban Anda: ")
+
+jawaban_pengguna = preprocess_input(jawaban_pengguna)
 
 # Ekstraksi fitur dari jawaban pengguna
 X_pengguna = vectorizer.transform([jawaban_pengguna])
@@ -103,4 +93,3 @@ if percentage_similarity >= 50:  # Ubah threshold sesuai kebutuhan
     print(f"Jawaban Anda mirip dengan salah satu jawaban dalam data pelatihan ({percentage_similarity:.2f}% kemiripan).")
 else:
     print("Jawaban Anda tidak mirip dengan jawaban dalam data pelatihan.")
-    

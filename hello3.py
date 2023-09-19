@@ -65,6 +65,7 @@ output = preprocess_input(data)
 jawaban_siswa = [output] + [getSinonim(output) for _ in range(4)]
 label = [1, 1, 1, 1, 1]
 
+
 # Ekstraksi fitur menggunakan vektor TF-IDF
 vectorizer = TfidfVectorizer()
 X = vectorizer.fit_transform(jawaban_siswa)
